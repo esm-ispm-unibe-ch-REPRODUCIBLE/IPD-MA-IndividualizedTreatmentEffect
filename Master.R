@@ -1,0 +1,1 @@
+# One has to give as an input the data, the model for the first stage and the pooling method
