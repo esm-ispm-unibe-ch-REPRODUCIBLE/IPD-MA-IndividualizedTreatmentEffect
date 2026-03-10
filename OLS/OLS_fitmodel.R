@@ -1,42 +1,52 @@
 # Ordinary Least Square Regression - Inverse Variance Multivariate meta-analysis
-n.parameters_to_meta_analyze <- n_covariates + 1
 
-# Covariates of testing dataset
-test_dataset <- data_testing %>% select(starts_with("x_")) %>%  as.matrix()
-true_test_ITE <- data_testing[$true_ITE_cont
+OLS.fit <- function(y, X, t, newX){
+    # y = list of outcomes
+    # X = list of datasets with covariates
+    # t = list of treatment
+    n.covariates <- nrow(X)
+    nstudies <- length(y)
 
-coefficients_to_meta_analyze <- matrix(nrow = nstudies, 
-                               ncol = n.parameters_to_meta_analyze)
+    coefficients_to_meta_analyze <- matrix(nrow = nstudies, ncol = n.covariates + 1)
 
-# Let's create a list that will contain the variance/covariance matrix of the coefficients
-vcov_parameters_to_meta_analyze <- vector("list", length = nstudies)
+    # Let's create a list that will contain the variance/covariance matrix of the coefficients
+    vcov_parameters_to_meta_analyze <- vector("list", length = nstudies)
 
-for(l in 1:nstudies){
-# Fit linear model
-mod <- lm(model_formula,  data = data_training[[l]])
+    # Model formula
+    new_cov_names <- paste("x", 1:n.covariates, sep = "")
+    formula_str <- paste("y ~ treatment * (", paste(new_cov_names, collapse = " + "), ")", 
+                         sep = "")
+    model_formula <- as.formula(formula_str)
 
-# Save the punctual estimates
-coefficients_to_meta_analyze[l, ] <- mod$coefficients[startsWith(names(mod$coefficients), 
-                                                           "treatment")]
+    for(l in 1:nstudies){
+        # Fit linear model
+        data_training <- cbind(X[[l]], t[[l]]); colnames(data_training) <- c(new_cov_names, "treatment")
+        mod <- lm(model_formula,  data = data_training)
 
-# Save the variance/cov matrix
-vcov_parameters_to_meta_analyze[[l]] <- vcov(mod)[startsWith(rownames(vcov(mod)), "treatment"), 
-                                            startsWith(colnames(vcov(mod)), "treatment")]
+        # Save the punctual estimates
+        coefficients_to_meta_analyze[l, ] <- mod$coefficients[startsWith(names(mod$coefficients), 
+                                                                   "treatment")]
 
+        # Save the variance/cov matrix
+        vcov_parameters_to_meta_analyze[[l]] <- vcov(mod)[startsWith(rownames(vcov(mod)), "treatment"), 
+                                                    startsWith(colnames(vcov(mod)), "treatment")]
+    }
 
-# Meta-analysis of the parameters: 
-meta_obj <- mvmeta::mvmeta(coefficients_to_meta_analyze,
-                   vcov_parameters_to_meta_analyze, 
-                   method = "reml") 
-parameters_meta_analyzed <- coef(meta_obj)
+        # Meta-analysis of the parameters: 
+        meta_obj <- mvmeta::mvmeta(coefficients_to_meta_analyze,
+                           vcov_parameters_to_meta_analyze, 
+                           method = "reml") 
 
-# Predict ITE on new data
-predictions <- cbind(1, test_dataset) %*% parameters_meta_analyzed
+        parameters_meta_analyzed <- coef(meta_obj)
 
-# Assess performances
-performance <- cbind(j, assess_performances(ITE_actual = true_test_ITE,
-                                                ITE_predicted = predictions))
+        # Predict ITE on new data
+        predictions <- cbind(1, newX) %*% parameters_meta_analyzed
 
+  return(predictions)  
 }
+
+
+
+
  
 
