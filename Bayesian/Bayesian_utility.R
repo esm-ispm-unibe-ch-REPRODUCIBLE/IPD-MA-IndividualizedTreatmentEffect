@@ -129,13 +129,7 @@ second_stage <- function(obj_first_stage){
     
     # Fixed effects for gamma
     for(j in 1:N.covariates){
-      # for(i in 1:n_studies){
-        # gamma[i, j] ~ dnorm(theta_gamma, 0.001)
-      #
       gamma[j] ~ dnorm(0, 0.001)
-      # theta_gamma[j] ~ dnorm(0, 0.001)
-      # prior for precisions
-      # tau_gamma[j] ~ dgamma(0.001, 0.001)
     }
 
     # Random effects for delta
