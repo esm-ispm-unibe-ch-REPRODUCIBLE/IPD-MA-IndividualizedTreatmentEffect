@@ -34,6 +34,14 @@ get_bootstrap_sample <- function(X){
   return(X[index, ])
 }
 
+ols_iv_variance <- function(data_train, newX, model_formula){
+  get_linear_model_variance(
+      data_train = data_train,
+      new_patients_data = newX,
+      formula = model_formula
+  )
+}
+
 # 3. Linear model variance
 get_linear_model_variance <- function(data_train,
                                       new_patients_data,

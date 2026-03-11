@@ -2,20 +2,17 @@
 library(glmnet)
 library(matrixStats)
 
-LASSO_fit <- function(y, X, t, newX, second_stage, N_sample_bootstrap = 100){
-    # y = list of outcomes
-    # X = list of datasets with covariates
-    # t = list of treatment
+lasso_predict_ite <- function(model, newX){
+  x1_test <- cbind(1, newX, newX) 
+  x0_test <- cbind(0, newX, 0 * newX) 
 
-    ols_iv_variance <- function(data_train, newX, model_formula){
-      get_linear_model_variance(
-          data_train = data_train,
-          new_patients_data = newX,
-          formula = model_formula
-      )
-    }
+  ite <- as.numeric(predict(cv.obj, newx = x1_test, s = "lambda.min") -
+                               predict(cv.obj, newx = x0_test, s = "lambda.min"))
 
-    bootstrap_variance <- function(data_train, newX, model_formula,
+  return(ite)
+}
+
+lasso_bootstrap_variance <- function(data_train, newX, model_formula,
                                x1_test, x0_test,
                                penalty_factors, lambda_seq,
                                N_boot = 100){
@@ -46,39 +43,43 @@ LASSO_fit <- function(y, X, t, newX, second_stage, N_sample_bootstrap = 100){
   matrixStats::rowVars(bootstrap_preds)
 }
 
-    n_covariates <- ncol(X[[1]])
-    nstudies <- length(y)
+lasso_build_design_matrix <- function(X, mod.formula){
+  return(model.matrix(mod.formula, data = X)[, -1])
+}
+
+lasso_ipd_ite <- function(data, newX, covariate_names, second_stage, N_sample_bootstrap = 100,
+  covariate_names){
+    # y = list of outcomes
+    # X = list of datasets with covariates
+    # t = list of treatment
+
+    n_covariates <- ncol(data) - 2
+    nstudies <- length(data)
 
     lambda_seq <- 10 ^ seq(2, -3, by = -0.3)
     penalty_factors <- c(rep(0, 1 + n_covariates), rep(1, n_covariates))
 
-    new_cov_names <- paste0("x", 1:n.covariates)
-    formula_str <- paste("y ~ treatment * (", paste(new_cov_names, collapse = " + "), ")", 
+    formula_str <- paste("y ~ treatment * (", paste(covariate_names, collapse = " + "), ")", 
                          sep = "")
     model_formula <- as.formula(formula_str)
 
-    x1_test <- cbind(1, newX, newX) 
-    x0_test <- cbind(0, newX, 0 * newX) 
     predictions <- variance <- matrix(nrow = nrow(newX), ncol = nstudies)
     
     second_stage <- toupper(second_stage)
     if(second_stage == "OLS+IV"){
-      variance_method <- ols_iv_variance
+      variance_method <- get_linear_model_variance
     } else (second_stage == "BS"){
       variance_method <- bootstrap_variance
     } 
 
     for(l in 1:nstudies){
-      data_lth_study <- cbind(X[[l]], t[[l]], y[[l]]); colnames(data_lth_study) <- c(new_cov_names, "treatment", "y")
-      x_train <- model.matrix(model_formula, data = data_lth_study)[, -1]
-      
-      # fit cv.glmnet su dataset originale
-      cv.obj <- cv.glmnet(x_train, y = y[[l]], nfolds = 10, alpha = 1,
-                            penalty.factor = penalty_factors, lambda = lambda_seq)
+     # fit cv.glmnet su dataset originale
+      cv.obj <- LASSO_fit_model(data = data[[l]], model_formula = model_formula, 
+                                lambda_seq = lambda_seq, penalty_factors = penalty_factors,
+                                cov_names = covariate_names)
       
       # predictions per ITE
-      predictions[, l] <- as.numeric(predict(cv.obj, newx = x1_test, s = "lambda.min") -
-                               predict(cv_lasso, newx = x0_test, s = "lambda.min"))
+      predictions[, l] <- lasso_predict_ite(model = cv.obj, newX = newX)
 
       variance[, l] <- variance_method(
       data_train = data_lth_study,
@@ -97,4 +98,17 @@ LASSO_fit <- function(y, X, t, newX, second_stage, N_sample_bootstrap = 100){
     pooled_predictions <- rowSums(predictions * weights) / rowSums(weights)
 
     return(pooled_predictions)
+}
+
+LASSO_fit_model <- function(data, model_formula, lambda_seq, 
+                            penalty_factors, cov_names){
+
+      x_train <- lasso_build_design_matrix(X = data[, cov_names], mod.formula = model_formula)
+      
+      # fit cv.glmnet su dataset originale
+      cv.obj <- cv.glmnet(x_train, y = y[[l]], nfolds = 10, alpha = 1,
+                            penalty.factor = penalty_factors, lambda = lambda_seq)
+
+      return(cv.obj)
+    
 }
