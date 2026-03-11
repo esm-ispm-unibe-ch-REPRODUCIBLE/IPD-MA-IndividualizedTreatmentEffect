@@ -206,7 +206,7 @@ BayesLASSO.I_stage <- function(studies_data, n.covariates,
   params <- c("delta", "gamma")
 
   for(i in 1:nstudies){
-    data_ith_study <- studies_data %>% filter(ID_study == i)
+    data_ith_study <- studies_data[[i]]
     
     BayesLASSO.spec <- textConnection(BayesLASSO)
     cov <- data_ith_study %>% select(starts_with("x_")) %>% as.matrix()
