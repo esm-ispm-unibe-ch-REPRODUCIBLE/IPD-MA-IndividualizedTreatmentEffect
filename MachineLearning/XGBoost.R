@@ -42,7 +42,6 @@ xgb_bootstrap_variance <- function(data_train, # Original training data
 }
 
 xgb_get_variance_wrapper <- function(second_stage, 
-                                     model_formula,
   	                                 newX,
   	                                 N_boot = 100,
   	                                 x1_test,
@@ -151,7 +150,7 @@ xgb_train <- function(data, params_df, covariate_names,
 }
 
 # Prediction
-predict.xgb <- function(newX, obj_xgb_train, second_stage, N_boot){
+predict.xgb <- function(newX, obj_xgb_train, second_stage, N_boot = 100){
 	x1_test <- as.matrix(cbind(treatment = 1, newX))
     x0_test <- as.matrix(cbind(treatment = 0, newX))  
 
