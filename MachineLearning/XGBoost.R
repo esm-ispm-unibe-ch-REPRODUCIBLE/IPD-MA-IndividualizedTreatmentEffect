@@ -1,5 +1,4 @@
 # XGBoost
-library(dplyr)
 library(matrixStats)
 library(xgboost)
 
@@ -55,7 +54,7 @@ xgb_get_variance_wrapper <- function(second_stage,
 
       second_stage <- toupper(second_stage)
       model_formula <- paste0(outcome_name, " ~ ", treatment_name, " * (",
-                              collapse(covariates_names, "+"), ")")
+                              paste(covariates_names, collapse = "+"), ")")
       
       if(second_stage == "OLS+IV"){
         # ritorna una funzione che prende solo data_train
@@ -105,10 +104,10 @@ xgb_cross_validation <- function(xgb.data, parameters){
                      nrounds = parameters$nrounds[i], nfold = 10,
                      early_stopping_rounds = 20, verbose = 0
         )
-        performances[[i]] <- min(cv$evaluation_log$test_rmse_mean)
+    performances[[i]] <- min(cv$evaluation_log$test_rmse_mean)
 	}
 
-	best_row <- params_df[which.min(cv_results), ]
+	best_row <- params_df[which.min(performances), ]
 
 	to_return <- list(best_nrounds = best_row$nrounds,
 		best_params = list(objective = "reg:squarederror",
@@ -143,7 +142,8 @@ xgb_train <- function(data, params_df, covariate_names,
                                nrounds = parameters[[l]]$best_nrounds)
 	}
 
-	return(list(final_models = xgb.models,
+	return(list(data = data, 
+    final_models = xgb.models,
 		final_parameters = parameters,
     outcome_name = outcome,
     treatment_name = treatment,
@@ -155,8 +155,8 @@ predict.xgb <- function(newX, obj_xgb_train, second_stage, N_boot){
 	x1_test <- as.matrix(cbind(treatment = 1, newX))
     x0_test <- as.matrix(cbind(treatment = 0, newX))  
 
-    predictions <- matrix(nrow = nrow(newX), ncol = object$nstudies)
-  	variance <- matrix(nrow = nrow(newX), ncol = object$nstudies) 
+    predictions <- matrix(nrow = nrow(newX), ncol = obj_xgb_train$nstudies)
+  	variance <- matrix(nrow = nrow(newX), ncol = obj_xgb_train$nstudies) 
 
 
     variance_method <- xgb_get_variance_wrapper(
@@ -166,14 +166,14 @@ predict.xgb <- function(newX, obj_xgb_train, second_stage, N_boot){
       N_boot = N_boot,
       x1_test = x1_test,
       x0_test = x0_test,
-      outcome_name = obj_xgb_train$outcome,
-      treatment_name = obj_xgb_train$treatment,
-      covariates_names = obj_xgb_train$covariate_names      
+      outcome_name = obj_xgb_train$outcome_name,
+      treatment_name = obj_xgb_train$treatment_name,
+      covariates_names = obj_xgb_train$covariates_names      
     )
   
   for(l in seq_len(object$nstudies)){
     predictions[, l] <- xgb_predict_ite(model = obj_xgb_train$final_models[[l]], x1_test = x1_test, x0_test = x0_test)
-    variance[, l] <- variance_method(object$data[[l]])
+    variance[, l] <- variance_method(obj_xgb_train$data[[l]])
   }
 
   weights <- 1 / variance
