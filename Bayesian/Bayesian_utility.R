@@ -46,7 +46,7 @@ BayesianLM <- function(studies_data, n.covariates,
     input_data <- list(y = data_ith_study$y,
                        x = as.matrix(data_ith_study[, cov_names]),
                        x_int = as.matrix(data_ith_study[, cov_names]) *
-                                           data_ith_study$treatment),
+                                           data_ith_study$treatment,
                        trt = data_ith_study$treatment, 
                        n_patients = nrow(data_ith_study),
                        N.covariates = n.covariates)
