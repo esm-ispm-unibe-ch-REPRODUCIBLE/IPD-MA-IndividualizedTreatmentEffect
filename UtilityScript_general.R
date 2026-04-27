@@ -20,11 +20,8 @@ get_linear_model_variance <- function(data_train,
   Vbeta <- vcov(ausiliar_model)
   
   # New patients data; under treatment and control
-  data_1 <- cbind(newX, treatment = 1)
-  data_0 <- cbind(newX, treatment = 0)
-  
-  x1_test <- model.matrix(model_formula, data = data_1)[, -1]
-  x0_test <- model.matrix(model_formula, data = data_0)[, -1]
+  x1_test <- as.matrix(cbind(1, 1, newX, newX))
+  x0_test <- as.matrix(cbind(1, 0, newX, 0 * newX))
   
   diff_x <- x1_test - x0_test
   

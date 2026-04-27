@@ -17,7 +17,6 @@ lasso_predict_ite <- function(model, # Model object
 }
 
 lasso_bootstrap_variance <- function(data_train, # Original training data
-                                     newX, # New covariates
                                      model_formula, # Model formula
                                      penalty_factors, # Penalty factors for the regression 
                                      lambda_seq, # Grid of lambda parameters
@@ -168,8 +167,8 @@ predict.ipd_lasso <- function(object,
 
   predictions <- matrix(nrow = nrow(newX), ncol = object$nstudies)
   variance <- matrix(nrow = nrow(newX), ncol = object$nstudies)
-  x1_test <- model.matrix(object$spec$model_formula, data = cbind(newX, treatment = 1))[,-1]
-  x0_test <- model.matrix(object$spec$model_formula, data = cbind(newX, treatment = 0))[,-1] 
+  x1_test <- as.matrix(cbind(1, newX, newX))
+  x0_test <- as.matrix(cbind(0, newX, 0 * newX))
 
   variance_method <- lasso_get_variance_wrapper(
       second_stage = second_stage,
@@ -183,8 +182,9 @@ predict.ipd_lasso <- function(object,
     )
   
   for(l in seq_len(object$nstudies)){
-    predictions[, l] <- lasso_predict_ite(model = object$models[[l]], x1_test = x1_test, x0_test = x0_test)
-    variance[, l] <- variance_method(object$data[[l]])
+    predictions[, l] <- lasso_predict_ite(model = object$models[[l]], 
+                                          x1_test = x1_test, x0_test = x0_test)
+    variance[, l] <- variance_method(data_train = object$data[[l]])
   }
 
   weights <- 1 / variance

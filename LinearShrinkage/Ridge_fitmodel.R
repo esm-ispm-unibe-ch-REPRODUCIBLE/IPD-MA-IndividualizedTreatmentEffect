@@ -46,7 +46,6 @@ ridge_bootstrap_variance <- function(data_train, # Original training data
 
 
 ridge_get_variance_wrapper <- function(second_stage, 
-                                 newX,
                                  model_formula,
                                  penalty_factors = NULL,
                                  lambda_seq = NULL,
@@ -167,12 +166,11 @@ predict.ipd_ridge <- function(object,
 
   predictions <- matrix(nrow = nrow(newX), ncol = object$nstudies)
   variance <- matrix(nrow = nrow(newX), ncol = object$nstudies)
-  x1_test <- model.matrix(object$spec$model_formula, data = cbind(newX, treatment = 1))[,-1]
-  x0_test <- model.matrix(object$spec$model_formula, data = cbind(newX, treatment = 0))[,-1] 
+  x1_test <- as.matrix(cbind(1, newX, newX))
+  x0_test <- as.matrix(cbind(0, newX, 0 * newX))
 
   variance_method <- ridge_get_variance_wrapper(
       second_stage = second_stage,
-      newX = newX,
       model_formula = object$spec$model_formula,
       penalty_factors = object$spec$penalty_factors,
       lambda_seq = object$spec$lambda_seq,
@@ -182,7 +180,8 @@ predict.ipd_ridge <- function(object,
     )
   
   for(l in seq_len(object$nstudies)){
-    predictions[, l] <- ridge_predict_ite(model = object$models[[l]], x1_test = x1_test, x0_test = x0_test)
+    predictions[, l] <- ridge_predict_ite(model = object$models[[l]], 
+                                          x1_test = x1_test, x0_test = x0_test)
     variance[, l] <- variance_method(object$data[[l]])
   }
 
