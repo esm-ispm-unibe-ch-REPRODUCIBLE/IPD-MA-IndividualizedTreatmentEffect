@@ -99,16 +99,16 @@ get_ITE <- function(covariates_test_data, parameters_posterior_sample){
 }
 
 second_stage_ITE <- function(covariates_test_data, posterior_samples, nstudies){
-  samps.mean <- matrix(ncol = nrow(s.means), nrow = nrow(covariates_test_data))
-  samps.sd <- matrix(ncol = nrow(s.means), nrow = nrow(covariates_test_data))
-  for(l in 1:nrow(s.means)){
+  samps.mean <- matrix(ncol = nstudies, nrow = nrow(covariates_test_data))
+  samps.var <- matrix(ncol = nstudies, nrow = nrow(covariates_test_data))
+  for(l in 1:nstudies){
     z <- get_ITE(covariates_test_data = covariates_test_data,
                  parameters_posterior_sample = posterior_samples[[l]])
     samps.mean[, l] <- z$point_estimates
-    samps.sd[, l] <- z$weights
+    samps.var[, l] <- z$weights
   }
   
-  ITE.to.return <- rowSums(samps.mean * 1 / samps.sd) / rowSums(1 / samps.sd)
+  ITE.to.return <- rowSums(samps.mean * 1 / samps.var) / rowSums(1 / samps.var)
   
   return(ITE.to.return)
 }
@@ -253,6 +253,95 @@ second_stage_LASSO <- function(covariates_test_data, posterior_samples,
   return(ITE.to.return)
 }
 
+
+# Bayesian unpenalized linear model with multivariate meta-analysis or mixing of MCMC samples
+
+Bayesian_unpenalized_linear_model <- function(data, 
+                                              covariate_names, 
+                                              outcome = "y",
+                                              treatment = "treatment"
+){
+  
+  Bayesian.LM.obj <- BayesianLM(studies_data = data,
+                                n.covariates = length(covariate_names),
+                                nstudies = length(data),
+                                cov_names = covariate_names, 
+                                outcome = outcome,
+                                treatment = treatment)
+  return(Bayesian.LM.obj)
+}
+
+predict.Bayesian_linear_regression <- function(obj.Bayesian_UP, newX, second_stage){
+  newX.matrix <- as.matrix(newX)
+  if(second_stage == "Bayesian-MVMA"){
+    p1 <- obj.Bayesian_UP[[1]]
+    p2 <- second_stage(obj_first_stage = p1)
+    to_return <- p2["theta_delta", "Estimate"] + 
+      newX.matrix %*% p2[startsWith(rownames(p2), "gamma"), "Estimate"]
+  } else {
+    p1 <- obj.Bayesian_UP[[2]]
+    to_return <- second_stage_ITE(covariates_test_data = newX.matrix, 
+                                  posterior_samples = p1, 
+                                  nstudies = length(p1))
+  }
+  
+  return(to_return)
+}
+
+
+
+# Bayesian LASSO with mixing of MCMC samples
+Bayesian_LASSO <- function(data, covariate_names, outcome = "y", treatment = "treatment"){
+  n_covariates <- length(covariate_names)
+  nstudies <- length(data)
+  studies_means <- matrix(nrow = nstudies, ncol = n_covariates + 1)
+  studies_sds <- matrix(nrow = nstudies, ncol = n_covariates + 1)
+  studies_means[, 1] <- studies_sds[, 1] <- 1:nstudies
+  
+  total_studies <- do.call(rbind, data)  
+  for(j in seq_along(covariate_names)){
+    is_dummy <- all(total_studies[[covariate_names[j]]] %in% c(0, 1))
+    if(is_dummy){
+      studies_means[, j + 1] <- 0; studies_sds[, j] <- 1
+    } else {
+      for(i in 1:nstudies){
+        studies_means[i, j + 1] <- mean(data[[i]][[covariate_names[[j]]]])
+        studies_sds[i, j + 1] <- sd(data[[i]][[covariate_names[[j]]]])
+      }
+    }
+  }
+  
+  std_data <- vector("list", length = nstudies)
+  for(l in 1:nstudies){
+    cov_std <- scale(data[[l]][, covariate_names], 
+                     center = studies_means[l, -1],
+                     scale = studies_sds[l, -1])
+    std_data[[l]] <- cbind(data[[l]][[response]], data[[l]][[treatment]], cov_std)
+    colnames(std_data) <-  c("y", "treatment" ,covariate_names)
+  }
+  
+  p <- BayesLASSO.I_stage(studies_data = std_data, 
+                          n.covariates = n_covariates, 
+                          nstudies = nstudies)
+  
+  to_return <- list(posterior_samples = p,
+                    studies_means = studies_means,
+                    studies_sds = studies_sds)
+  
+  return(to_return)
+} 
+
+predict.mixing_MCMC_LASSO <- function(BayesianLASSO.train, newX){
+  cov <- as.matrix(newX) 
+  
+  predictions <- second_stage_LASSO(covariates_test_data = cov, 
+                                    posterior_samples = BayesianLASSO.train$p,
+                                    s.means = BayesianLASSO.train$studies_means,
+                                    s.sds = BayesianLASSO.train$studies_sds,
+                                    nstudies = ) 
+  
+  return(predictions)
+}
 
 
 
