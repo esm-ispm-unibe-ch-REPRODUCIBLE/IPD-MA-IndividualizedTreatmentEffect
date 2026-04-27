@@ -9,6 +9,7 @@ tau_effect <- c(0.2, 0.5) # treatment heterogeneity
 
 
 set.seed(42)
+n_covariates <- 8
 # Generate beta from a Uniform(-2, 2)
 beta <- round(runif(n_covariates, -2, 2), 2)
 # main effects of covariates

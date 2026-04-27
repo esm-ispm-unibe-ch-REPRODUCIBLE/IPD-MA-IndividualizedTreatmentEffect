@@ -29,9 +29,9 @@ cf_bootstrap_variance <- function(data_train, # Original training data
 cf_get_variance_wrapper <- function(second_stage, 
   	                                newX,
   	                                N_boot = 100,
-	                                outcome_name,
-	                                treatment_name,
-	                                covariates_names){
+  	                                outcome_name,
+  	                                treatment_name,
+  	                                covariates_names){
 
       second_stage <- toupper(second_stage)
       model_formula <- paste0(outcome_name, " ~ ", treatment_name, " * (",
@@ -104,7 +104,7 @@ cf_train <- function(data, covariate_names,
 
 # Prediction
 predict.cf <- function(obj.first.stage, 
-					   newX,
+					            newX,
                        second_stage = "BS",
                        N_boot = 100){  
 
