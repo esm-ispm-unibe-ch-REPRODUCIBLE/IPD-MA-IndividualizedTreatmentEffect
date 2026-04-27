@@ -22,7 +22,7 @@ sample_sizes <- c("SMALL", "LARGE")
 sample_size_min <- c(50, 300)
 sample_size_max <- c(200, 600)
 
-complexity <- c(T, F)
+complexity <- c(F, T)
 
 parameters <- expand.grid(heterogeneity = tau_effect, 
                           effect_modification = effect_modification, 
