@@ -2,8 +2,8 @@
 
 OLS_ipd_train <- function(data, second_stage, # can be either reml or fixed
                     covariate_names, outcome, treatment){ 
-    n.covariates <- ncol(X[[1]])
-    nstudies <- length(y)
+    n.covariates <- length(covariate_names)
+    nstudies <- length(data)
 
     coefficients_to_meta_analyze <- matrix(nrow = nstudies, ncol = n.covariates + 1)
 
@@ -36,14 +36,13 @@ OLS_ipd_train <- function(data, second_stage, # can be either reml or fixed
 
         parameters_meta_analyzed <- coef(meta_obj)
 
-        class(parameters_meta_analyzed) <- "OLS_MVMA"
-
   return(parameters_meta_analyzed)  
 }
 
 
 predict.OLS_MVMA <- function(obj.OLS, newX){
-    cbind(1, newX) %*% obj.OLS
+    newX.matrix <- as.matrix(newX)
+    cbind(1, newX.matrix) %*% obj.OLS
 }
 
  
