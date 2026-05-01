@@ -11,7 +11,7 @@ OLS_ipd_train <- function(data, second_stage, # can be either reml or fixed
     vcov_parameters_to_meta_analyze <- vector("list", length = nstudies)
 
     # Model formula
-    formula_str <- paste("y ~ treatment * (", paste(covariate_names, collapse = " + "), ")", 
+    formula_str <- paste("y ~ ", treatment, " * (", paste(covariate_names, collapse = " + "), ")", 
                          sep = "")
     model_formula <- as.formula(formula_str)
 
