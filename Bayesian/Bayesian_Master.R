@@ -5,6 +5,7 @@ Bayes_linear_model <- Bayesian_unpenalized_linear_model(data = sample_train.df,
                                                         covariate_names = covariate_names, 
                                                         outcome = "y",
                                                         treatment = "treatment")
+
 predictions.MVMA <- predict.Bayesian_linear_regression(obj.Bayesian_UP = Bayes_linear_model, 
                                                        newX = sample_test.df[, covariate_names], 
                                                        second_stage = "Bayesian-MVMA")

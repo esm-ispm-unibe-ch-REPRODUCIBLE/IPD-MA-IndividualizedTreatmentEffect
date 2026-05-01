@@ -112,7 +112,7 @@ lasso_ipd_spec <- function(covariate_names,
   }
 
   formula_str <- paste(
-  "y ~ treatment * (",
+  outcome, "~", treatment, " * (",
   paste(covariate_names, collapse = " + "),
   ")"
   )

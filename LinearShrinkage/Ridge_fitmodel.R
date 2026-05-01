@@ -111,7 +111,7 @@ ridge_ipd_spec <- function(covariate_names,
   }
 
   formula_str <- paste(
-  "y ~ treatment * (",
+  "y ~", treatment, " * (",
   paste(covariate_names, collapse = " + "),
   ")"
   )
