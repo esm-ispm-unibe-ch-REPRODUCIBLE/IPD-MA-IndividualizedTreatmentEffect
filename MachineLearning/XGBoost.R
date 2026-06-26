@@ -86,7 +86,7 @@ xgb_cross_validation <- function(xgb.data, parameters){
 
 	# devo aggiugnere un check sui parametri
 	for(i in 1:nrow(parameters)){
-		params <- list(objective = "reg:squarederror", 
+		params <- xgb.params(objective = "reg:squarederror", 
 				   eval_metric = "rmse",
                    max_depth = parameters$max_depth[i], 
                    eta = parameters$eta[i],
@@ -104,7 +104,7 @@ xgb_cross_validation <- function(xgb.data, parameters){
 	best_row <- parameters[which.min(performances), ]
 
 	to_return <- list(best_nrounds = best_row$nrounds,
-		best_params = list(objective = "reg:squarederror",
+		best_params = xgb.params(objective = "reg:squarederror",
                         eval_metric = "rmse", max_depth = best_row$max_depth,
                         eta = best_row$eta, colsample_bytree = 1,
                         min_child_weight = 1, subsample = 1))
